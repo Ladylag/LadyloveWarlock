@@ -35,13 +35,10 @@ local function eventHandler(self, event, ...)
 	end
 	if (event == "PLAYER_TARGET_CHANGED") then
 		if (targetScanInProgress) then
-			if (targetScanStartGUID == UnitGUID("target") and not stillOnFirstTarget) then
+			if (targetScanStartGUID == UnitGUID("target")) then
 				targetScanStartGUID = nil
 				targetScanInProgress = false
 				targetScanCompletionTime = GetTime()
-			end
-			if (stillOnFirstTarget) then
-				stillOnFirstTarget = false
 			end
 		end
 	end
@@ -66,6 +63,14 @@ function SlashCmdList.LADYLOVE2(msg, editbox)
 			ladylove_barEnabled.texture:SetTexture(0, 0.5, 0, 0.5)
 		end
 		return
+	elseif msg == 'targetchange' then
+		if (targetScanInProgress) then
+			if (targetScanStartGUID == UnitGUID("target")) then
+				targetScanStartGUID = nil
+				targetScanInProgress = false
+				targetScanCompletionTime = GetTime()
+			end
+		end
 	else
 		triggeredAbility = msg
 	end
