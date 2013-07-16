@@ -1,0 +1,5 @@
+## Interface: 30300
+## Title: LadyLoveWW
+## Notes: For ladies
+ladyloveWW.lua
+ladyloveWW.xml
