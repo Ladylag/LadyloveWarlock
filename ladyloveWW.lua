@@ -6,6 +6,7 @@ ladylove_UpdateInterval = 0.05;
 
 --global variables
 triggeredAbility = nil
+setFocusID = nil
 
 --Globals
 ladylove_bar = CreateFrame("Frame",nil,UIParent)
@@ -47,6 +48,9 @@ function SlashCmdList.LADYLOVE2(msg, editbox)
 			ladylove_barEnabled.texture:SetTexture(0, 0.5, 0, 0.5)
 		end
 		return
+	elseif msg == 'setfocus' then
+		setFocusID = UnitGUID("focus")
+		print(setFocusID)
 	else
 		triggeredAbility = msg
 	end
