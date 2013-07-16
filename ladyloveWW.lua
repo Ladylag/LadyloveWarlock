@@ -3,10 +3,15 @@ ccTable = {"Gnaw", "Asphyxiate", "Remorseless Winter", "Monstrous Blow", "Bash",
 
 --Settings
 ladylove_UpdateInterval = 0.05;
+targetScanInterval = 5
 
 --global variables
 triggeredAbility = nil
-setFocusID = nil
+targetScanCompletionTime = 0
+targetScanInProgress = false
+targetScanStartGUID = nil
+
+
 
 --Globals
 ladylove_bar = CreateFrame("Frame",nil,UIParent)
@@ -15,6 +20,7 @@ ladylove_barEnabled = CreateFrame("Frame",nil,UIParent)
 ladylove_bar:RegisterEvent("UI_ERROR_MESSAGE");
 ladylove_bar:RegisterEvent("SPELL_UPDATE_COOLDOWN");
 ladylove_bar:RegisterEvent("UNIT_SPELLCAST_SENT");
+ladylove_bar:RegisterEvent("PLAYER_TARGET_CHANGED");
 local function eventHandler(self, event, ...)
 	local arg1, arg2, arg3, arg4 = ... 
 	if (event == "UI_ERROR_MESSAGE") then
@@ -26,6 +32,18 @@ local function eventHandler(self, event, ...)
 		end
 	end
 	if (event == "SPELL_UPDATE_COOLDOWN") then
+	end
+	if (event == "PLAYER_TARGET_CHANGED") then
+		if (targetScanInProgress) then
+			if (targetScanStartGUID == UnitGUID("target") and not stillOnFirstTarget) then
+				targetScanStartGUID = nil
+				targetScanInProgress = false
+				targetScanCompletionTime = GetTime()
+			end
+			if (stillOnFirstTarget) then
+				stillOnFirstTarget = false
+			end
+		end
 	end
 	if (event == "UNIT_SPELLCAST_SENT") then
 		if (arg1 == "player" or arg1 == "Player") then
@@ -48,9 +66,6 @@ function SlashCmdList.LADYLOVE2(msg, editbox)
 			ladylove_barEnabled.texture:SetTexture(0, 0.5, 0, 0.5)
 		end
 		return
-	elseif msg == 'setfocus' then
-		setFocusID = UnitGUID("focus")
-		print(setFocusID)
 	else
 		triggeredAbility = msg
 	end
@@ -96,8 +111,81 @@ function ladylove_OnUpdate(self, elapsed)
 				return
 			end
 		end
+		if (runRoutine()) then
+			return
+		end
 		setColorForKey("none")
 	end
+end
+
+function runRoutine()
+	if (isSpellUsable("Corruption")) then
+		setColorForAbility("Corruption")
+		return true
+	end
+	if (searchForTarget()) then
+		return true
+	end
+	if (isSpellUsable("Shadow Bolt")) then
+		setColorForAbility("Shadow Bolt")
+		return true
+	end
+	return false
+end
+
+function searchForTarget()
+	if (targetScanInProgress) then
+		setColorForAbility("Targetscan")
+		return true
+	elseif (GetTime() - targetScanCompletionTime > 5) then
+		targetScanInProgress = true
+		targetScanStartGUID = UnitGUID("target")
+		setColorForAbility("Targetscan")
+		return true
+	end
+	return false
+end
+
+function setColorForAbility(ability)		
+	if (ability ~= "Targetscan") then
+		targetScanInProgress = false
+	end
+	if (ability == "Corruption") then
+		setColorForKey("[")
+		return true
+	end
+	if (ability == "Shadow Bolt") then
+		setColorForKey("7")
+		return true
+	end
+	if (ability == "Targetscan") then
+		setColorForKey("f10")
+		return true
+	end
+end
+
+function isSpellUsable(spellName)
+	if (spellName ~= "Summon Pet") then
+		usable = IsUsableSpell(spellName)
+		start, duration = GetSpellCooldown(spellName)
+		if (duration ~= 0) then
+			return false
+		end
+	end
+	if (spellName == "Corruption") then
+		if (UnitDebuff("target", "Corruption") or not UnitExists("target")) then
+			return false
+		end
+	end
+	return true
+end
+
+function isMoving()
+	moving = false
+	if (GetUnitSpeed("Player") ~= 0) then
+		moving = true
+	end
+	return moving
 end
 
 function purgeCC()
@@ -111,33 +199,6 @@ function purgeCC()
 		end
 	end
 	return false
-end
-
-function setColorForAbility(ability)
-	if (ability == "Power Word: Shield") then
-		setColorForKey("c")
-		return true
-	end
-end
-
-function isSpellUsable(spellName)
-	start, duration = GetSpellCooldown("Leap of Faith")
-	--print("duration " .. duration)
-	if (spellName ~= "Summon Pet") then
-		usable = IsUsableSpell(spellName)
-		start, duration = GetSpellCooldown(spellName)
-		if (duration ~= 0) then
-			return false
-		end
-	end
-end
-
-function isMoving()
-	moving = false
-	if (GetUnitSpeed("Player") ~= 0) then
-		moving = true
-	end
-	return moving
 end
 
 lastKey = "0"
@@ -299,6 +360,8 @@ function setColorForKey(key)
 		currentRed = 0.00390625 * 74
 	elseif (key == "alt9") then
 		currentRed = 0.00390625 * 75
+	elseif (key == "tab") then
+		currentRed = 0.00390625 * 76
 	end
 	ladylove_bar.texture:SetTexture(currentRed,0,0, 1)
 end
